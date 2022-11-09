@@ -24,15 +24,24 @@ async function run() {
             const cursor = serviceCollection.find(query);
             const services = await cursor.toArray();
             res.send(services);
-
-
-
         })
 
         app.post('/services', async (req, res) => {
             const service = req.body;
             const result = await serviceCollection.insertOne(service);
             res.send(result);
+        })
+        app.get('/myreviews', async (req, res) => {
+            let query = {};
+            if (req.query.email) {
+                query = {
+                    email: req.query.email
+                }
+            }
+
+            const cursor = reviewCollection.find(query);
+            const myreview = await cursor.toArray();
+            res.send(myreview);
         })
 
         app.post('/reviews', async (req, res) => {
@@ -46,9 +55,12 @@ async function run() {
             const query = { _id: ObjectId(id) };
             const service = await serviceCollection.findOne(query);
             res.send(service);
-
-
-
+        })
+        app.delete('/myreviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: ObjectId(id) };
+            const result = await reviewCollection.deleteOne(query);
+            res.send(result);
         })
 
     }
