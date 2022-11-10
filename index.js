@@ -56,6 +56,9 @@ async function run() {
         app.get('/myreviews', verifiyJWT, async (req, res) => {
             const decoded = req.decoded;
             console.log(decoded);
+            if (decoded.email != req.query.email) {
+                res.status(403).send({ message: 'Unothorize access' })
+            }
             let query = {};
             if (req.query.email) {
                 query = {
