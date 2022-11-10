@@ -3,6 +3,7 @@ const cors = require('cors');
 const app = express();
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 
@@ -11,13 +12,35 @@ app.use(express.json());
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.s3uhktq.mongodb.net/?retryWrites=true&w=majority`;
-
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+function verifiyJWT(req, res, next) {
+
+    const authHeader = (req.headers.authorization);
+    console.log(authHeader);
+    if (!authHeader) {
+        return res.status(401).send({ message: 'Unothorize access' });
+    }
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+        if (err) {
+            return res.status(401).send({ message: 'Unothorize access' })
+        }
+        req.decoded = decoded;
+        next()
+    })
+
+}
 async function run() {
     try {
         const serviceCollection = client.db('architec').collection('services');
         const reviewCollection = client.db('architec').collection('reviews');
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
+            res.send({ token });
+        })
 
         app.get('/services', async (req, res) => {
             const query = {};
@@ -30,7 +53,9 @@ async function run() {
             const result = await serviceCollection.insertOne(service);
             res.send(result);
         })
-        app.get('/myreviews', async (req, res) => {
+        app.get('/myreviews', verifiyJWT, async (req, res) => {
+            const decoded = req.decoded;
+            console.log(decoded);
             let query = {};
             if (req.query.email) {
                 query = {
@@ -67,16 +92,16 @@ async function run() {
             const service = await serviceCollection.findOne(query);
             res.send(service);
         })
-        app.patch('/myreviews/:id', async (req, res) => {
-            const id = req.params.id;
-            const comment = req.body.comment;
-            const query = { _id: ObjectId(id) };
-            const update = {
-                $set: { comment }
-            };
-            const result = await reviewCollection.updateOne(query, update);
-            res.send(result);
-        })
+        // app.patch('/myreviews/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const comment = req.body.comment;
+        //     const query = { _id: ObjectId(id) };
+        //     const update = {
+        //         $set: { comment }
+        //     };
+        //     const result = await reviewCollection.updateOne(query, update);
+        //     res.send(result);
+        // })
         app.delete('/myreviews/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: ObjectId(id) };
