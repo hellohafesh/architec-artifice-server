@@ -41,7 +41,6 @@ async function run() {
             const myreview = await cursor.toArray();
             res.send(myreview);
         })
-        // http://localhost:5000/reviews?id=636b299164ad4e49c995a31a
 
         app.get('/reviews', async (req, res) => {
             let query = {};
